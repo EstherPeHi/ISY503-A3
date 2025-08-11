@@ -1,0 +1,12 @@
+# Ignore PyCharm project settings
+.idea/
+
+# Ignore model weights
+best_model.h5
+
+# Ignore generated images
+confusion_matrix.png
+training_history.png
+
+# Ignore output directory
+record_results/

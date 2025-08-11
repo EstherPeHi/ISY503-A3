@@ -1,5 +1,9 @@
 # main.py
 import pandas as pd
+from models.LSTM.model_lstm import create_lstm_model
+from train import train_model, plot_training_history
+from evaluation import evaluate_model
+import pathlib, shutil
 from prepare_data.preprocessing import Preprocessor
 from prepare_data.feature_engineering import TextEncoder
 
@@ -59,6 +63,27 @@ def main():
     X_train, X_val, X_test, y_train, y_val, y_test = encoder.prepare_data(processed_reviews, labels)
     print(f"Train: {X_train.shape}, Val: {X_val.shape}, Test: {X_test.shape}")
     print(f"y_train: {y_train.shape}, y_val: {y_val.shape}, y_test: {y_test.shape}")
+
+    #setting up model
+    MAX_WORDS = encoder.max_words
+    print(f"Max words: {MAX_WORDS}")
+    MAX_LENGHT = encoder.max_length
+    print(f"Max length: {MAX_LENGHT}")
+
+    model = create_lstm_model(MAX_WORDS, MAX_LENGHT)
+    print("\n7. Training the model...")
+    history = train_model(model, X_train, y_train, X_val, y_val, epochs = 2)
+    plot_training_history(history)
+
+    #evaluating the model
+    evaluate_model(model, X_test, y_test, encoder)
+
+    #collection results
+    result_directory = pathlib.Path("record_results/LSTM")
+    result_directory.mkdir(parents=True, exist_ok=True)
+    model.save(result_directory / 'result_model_LSTM.h5')
+    shutil.move("history_records.png", result_directory)
+
 
 if __name__ == "__main__":
     main()
