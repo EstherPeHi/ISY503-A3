@@ -4,23 +4,38 @@ from prepare_data.preprocessing import Preprocessor
 from prepare_data.feature_engineering import TextEncoder
 
 def main():
+
     print("=== Sentiment Analysis Project ===")
     # Step 1: Load labeled data
     print("\n1. Loading labeled data from raw files...")
     preprocessor = Preprocessor()
     reviews, labels = preprocessor.load_reviews()
 
-    # Đếm số lượng positive và negative
+    # Count the number of positive and negative reviews
     n_pos = sum(1 for y in labels if y == 1)
     n_neg = sum(1 for y in labels if y == 0)
     print(f"Loaded {len(reviews)} labeled reviews | Positive: {n_pos} | Negative: {n_neg}")
+
+    # Display the first 200 characters of a positive and a negative review (raw)
+    for label_value, label_name in [(1, "Positive"), (0, "Negative")]:
+        try:
+            idx = labels.index(label_value)
+            print(f"\n--- {label_name} review sample (raw, first 200 chars) ---")
+            print(reviews[idx][:200])
+        except ValueError:
+            print(f"No {label_name} review found.")
 
     # Step 2: Preprocess
     print("\n2. Preprocessing...")
     processed_reviews = [preprocessor.clean_text(r) for r in reviews]
 
+    # Display the first 5 processed reviews
+    print("\n--- 5 processed reviews & labels ---")
+    for i in range(min(5, len(processed_reviews))):
+        print(f"Label: {labels[i]} | Text: {processed_reviews[i][:100]}...")
+
     # Step 3: Remove duplicates
-    print("\n3. Removing duplicates...")
+    print("\n3. Removing duplicates...")    
     df = pd.DataFrame({'text': processed_reviews, 'label': labels})
     before = len(df)
     df = preprocessor.remove_duplicates(df)
@@ -31,7 +46,8 @@ def main():
 
     # Step 4: Remove outliers
     print("\n4. Removing outliers...")
-    processed_reviews, labels = preprocessor.remove_outliers(processed_reviews, labels)
+    processed_reviews, labels, n_outliers = preprocessor.remove_outliers(processed_reviews, labels)
+    print(f"Removed {n_outliers} outlier reviews")
 
     # Step 5: Encode text
     print("\n5. Encoding text...")
