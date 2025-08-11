@@ -105,7 +105,7 @@ class Preprocessor:
                 removed_count += 1
 
         print(f"Removed {removed_count} outlier reviews")
-        return filtered_reviews, filtered_labels
+        return filtered_reviews, filtered_labels, removed_count
 
     def check_data(self, reviews, labels):
         df = pd.DataFrame({'review': reviews, 'label': labels})
