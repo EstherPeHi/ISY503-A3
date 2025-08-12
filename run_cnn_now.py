@@ -1,0 +1,213 @@
+# run_cnn_now.py  (runner independiente)
+import argparse, re
+from pathlib import Path
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import (classification_report, confusion_matrix,
+                             roc_auc_score, roc_curve, precision_recall_fscore_support,
+                             accuracy_score, average_precision_score)
+
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import (Input, Embedding, Conv1D, GlobalMaxPooling1D,
+                                     Concatenate, Dropout, Dense, BatchNormalization,
+                                     ReLU, SpatialDropout1D)
+from tensorflow.keras.optimizers import Adam
+
+def read_dir_reviews(data_dir, domains=None):
+    data_dir = Path(data_dir)
+    if domains is None:
+        domains = ['books', 'dvd', 'electronics', 'kitchen_&_housewares']
+    texts, labels = [], []
+    for d in domains:
+        for fname, y in [('positive.review', 1), ('negative.review', 0)]:
+            fpath = data_dir / d / fname
+            if not fpath.exists():
+                continue
+            raw = fpath.read_text(encoding='latin-1', errors='ignore')
+            chunks = re.findall(r'<review_text>\s*(.*?)\s*</review_text>', raw, flags=re.S | re.I)
+            for t in chunks:
+                t = re.sub(r'<br\s*/?>', ' ', t)
+                t = re.sub(r'\s+', ' ', t).strip()
+                if len(t) >= 10:
+                    texts.append(t); labels.append(y)
+    return texts, np.array(labels, dtype=int)
+
+def create_cnn_model(vocab_size, max_length,
+                     embedding_dim=128, filters=128, kernel_sizes=(3,4,5),
+                     dropout=0.5, lr=1e-3):
+    inp = Input(shape=(max_length,))
+    x = Embedding(vocab_size, embedding_dim, input_length=max_length)(inp)
+    x = SpatialDropout1D(0.2)(x)
+    convs = []
+    for k in kernel_sizes:
+        c = Conv1D(filters, k, padding='valid', activation=None, kernel_initializer='he_normal')(x)
+        c = BatchNormalization()(c); c = ReLU()(c); c = GlobalMaxPooling1D()(c)
+        convs.append(c)
+    x = Concatenate()(convs) if len(convs) > 1 else convs[0]
+    x = Dense(128, activation='relu')(x); x = Dropout(dropout)(x)
+    x = Dense(64, activation='relu')(x);  x = Dropout(dropout*0.5)(x)
+    out = Dense(1, activation='sigmoid')(x)
+    model = Model(inputs=inp, outputs=out)
+    model.compile(optimizer=Adam(learning_rate=lr),
+                  loss='binary_crossentropy',
+                  metrics=['accuracy','AUC'])
+    return model
+
+def plot_training(history, out_prefix):
+    h = history.history
+    Path(out_prefix).parent.mkdir(parents=True, exist_ok=True)
+    plt.figure(); plt.plot(h.get("loss",[]),label="loss"); plt.plot(h.get("val_loss",[]),label="val_loss")
+    plt.legend(); plt.title("Loss"); plt.xlabel("Epoch"); plt.ylabel("Loss")
+    plt.tight_layout(); plt.savefig(out_prefix+"_loss.png"); plt.close()
+    if "accuracy" in h:
+        plt.figure(); plt.plot(h["accuracy"],label="acc")
+        if "val_accuracy" in h: plt.plot(h["val_accuracy"],label="val_acc")
+        plt.legend(); plt.title("Accuracy"); plt.xlabel("Epoch"); plt.ylabel("Accuracy")
+        plt.tight_layout(); plt.savefig(out_prefix+"_acc.png"); plt.close()
+    if "auc" in h:
+        plt.figure(); plt.plot(h["auc"],label="auc")
+        if "val_auc" in h: plt.plot(h["val_auc"],label="val_auc")
+        plt.legend(); plt.title("AUC"); plt.xlabel("Epoch"); plt.ylabel("AUC")
+        plt.tight_layout(); plt.savefig(out_prefix+"_auc.png"); plt.close()
+
+def plot_confusion(cm, out_png, names=("Neg","Pos")):
+    import numpy as np
+    plt.figure(); plt.imshow(cm, interpolation='nearest'); plt.title("Confusion Matrix"); plt.colorbar()
+    t = np.arange(len(names)); plt.xticks(t, names); plt.yticks(t, names)
+    thr = cm.max()/2
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            plt.text(j, i, int(cm[i,j]), ha="center", color="white" if cm[i,j]>thr else "black")
+    plt.ylabel('True'); plt.xlabel('Predicted'); plt.tight_layout(); plt.savefig(out_png); plt.close()
+
+def plot_roc_pr(y_true, y_prob, out_prefix):
+    try:
+        fpr, tpr, _ = roc_curve(y_true, y_prob); auc = roc_auc_score(y_true, y_prob)
+        plt.figure(); plt.plot(fpr, tpr, label=f"AUC={auc:.3f}"); plt.plot([0,1],[0,1],"--")
+        plt.legend(); plt.title("ROC"); plt.xlabel("FPR"); plt.ylabel("TPR")
+        plt.tight_layout(); plt.savefig(out_prefix+"_roc.png"); plt.close()
+    except Exception:
+        pass
+    ap = average_precision_score(y_true, y_prob)
+    ths = np.linspace(0,1,101); prec, rec = [], []
+    for th in ths:
+        y_pred = (y_prob >= th).astype(int)
+        p, r, _, _ = precision_recall_fscore_support(y_true, y_pred, average='binary', zero_division=0)
+        prec.append(p); rec.append(r)
+    plt.figure(); plt.plot(rec, prec, label=f"AP={ap:.3f}")
+    plt.legend(); plt.title("Precision-Recall"); plt.xlabel("Recall"); plt.ylabel("Precision")
+    plt.tight_layout(); plt.savefig(out_prefix+"_pr.png"); plt.close()
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", type=str, default="sorted_data_acl",
+                        help="Carpeta con books/dvd/electronics/kitchen_&_housewares")
+    parser.add_argument("--max-words", type=int, default=50000)
+    parser.add_argument("--max-length", type=int, default=300)
+    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--batch-size", type=int, default=64)
+    args = parser.parse_args()
+
+    # 1) Cargar dataset ya preparado en el repo
+    print("Cargando dataset desde", args.data_dir)
+    texts, y = read_dir_reviews(args.data_dir)
+    print(f"Total={len(texts)}  Pos={int(y.sum())}  Neg={int((1-y).sum())}")
+
+    # 2) Split 70/15/15
+    X_train, X_tmp, y_train, y_tmp = train_test_split(texts, y, test_size=0.30, random_state=42, stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_tmp, y_tmp, test_size=0.50, random_state=42, stratify=y_tmp)
+
+    # 3) Tokenizer + padding
+    tok = Tokenizer(num_words=args.max_words, oov_token="<OOV>")
+    tok.fit_on_texts(X_train)
+    def pad(xs): return pad_sequences(tok.texts_to_sequences(xs), maxlen=args.max_length, padding='post', truncating='post')
+    X_train, X_val, X_test = map(pad, [X_train, X_val, X_test])
+    vocab_size = min(args.max_words, len(tok.word_index)+1)
+    print(f"vocab_size={vocab_size}  max_length={args.max_length}")
+
+    # 4) Modelo
+    model = create_cnn_model(vocab_size=vocab_size, max_length=args.max_length)
+
+    # 5) Entrenar
+    callbacks = [
+        EarlyStopping(patience=5, restore_best_weights=True, monitor='val_loss'),
+        ReduceLROnPlateau(patience=2, factor=0.5, monitor='val_loss'),
+        ModelCheckpoint("models/CNN/best_cnn.keras", monitor='val_auc', mode='max', save_best_only=True)
+    ]
+    Path("models/CNN").mkdir(parents=True, exist_ok=True)
+    hist = model.fit(X_train, y_train, validation_data=(X_val, y_val),
+                     epochs=args.epochs, batch_size=args.batch_size,
+                     callbacks=callbacks, verbose=1)
+
+    # 6) === Elegir THRESHOLD en VALID por F1 ===
+    from sklearn.metrics import f1_score
+    y_val_prob = model.predict(X_val, verbose=0).ravel()
+
+    ths = np.linspace(0, 1, 501)
+    f1s = [f1_score(y_val, (y_val_prob >= t).astype(int), zero_division=0) for t in ths]
+    best_th = float(ths[int(np.argmax(f1s))])
+    print(f"\nBest threshold (VAL F1): {best_th:.3f}")
+
+    # === Evaluar en TEST usando ese threshold ===
+    y_prob = model.predict(X_test, verbose=0).ravel()
+    y_pred = (y_prob >= best_th).astype(int)
+
+    acc = accuracy_score(y_test, y_pred)
+    p, r, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='binary', zero_division=0)
+    try:
+        auc = roc_auc_score(y_test, y_prob)  # AUC no depende del threshold
+    except Exception:
+        auc = float("nan")
+
+    print(f"\n=== TEST (threshold={best_th:.3f}) ===")
+    print(f"Accuracy: {acc:.4f}  Precision: {p:.4f}  Recall: {r:.4f}  F1: {f1:.4f}  AUC: {auc:.4f}")
+    print("\nClassification report:\n", classification_report(y_test, y_pred, digits=4))
+
+    # Rehacer/guardar plots con estos resultados
+    Path('record_results/CNN').mkdir(parents=True, exist_ok=True)
+    cm = confusion_matrix(y_test, y_pred)
+    plot_confusion(cm, "record_results/CNN/confusion_matrix.png")
+    plot_roc_pr(y_test, y_prob, "record_results/CNN/curves")
+
+    # 7) Artefactos
+    Path("record_results/CNN").mkdir(parents=True, exist_ok=True)
+    plot_training(hist, "record_results/CNN/history_cnn")
+    cm = confusion_matrix(y_test, y_pred)
+    plot_confusion(cm, "record_results/CNN/confusion_matrix.png")
+    plot_roc_pr(y_test, y_prob, "record_results/CNN/curves")
+
+    # 8) Guardar modelo + tokenizer + threshold
+    import pickle, json, pathlib
+    pathlib.Path("models/CNN").mkdir(parents=True, exist_ok=True)
+
+    with open("models/CNN/tokenizer.pickle", "wb") as f:
+        pickle.dump(tok, f)
+
+    # formato Keras (recomendado)
+    model.save("models/CNN/last_cnn.keras")
+
+    # guarda el umbral óptimo encontrado en VALID
+    with open("models/CNN/threshold.json", "w") as f:
+        json.dump({"threshold": float(best_th)}, f)
+
+    # 9) Demo de inferencia (usa el mismo threshold)
+    demo = [
+        "I absolutely loved this! would buy again.",
+        "This is the worst experience I've had. Terrible."
+    ]
+    demo_pad = pad(demo)
+    demo_prob = model.predict(demo_pad, verbose=0).ravel()
+    for t, p_ in zip(demo, demo_prob):
+        lab = "Positive" if p_ >= best_th else "Negative"
+        print(f"[DEMO] {lab} (prob={p_:.3f}, thr={best_th:.3f}) :: {t}")
+
+    print("\nListo. Revisa carpetas: record_results/CNN/ y models/CNN/")
+
+
+if __name__ == "__main__":
+    main()
