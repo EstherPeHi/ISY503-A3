@@ -1,5 +1,6 @@
 # main.py
 import pandas as pd
+import tensorflow as tf
 from models.LSTM.model_lstm import create_lstm_model
 from train import train_model, plot_training_history
 from evaluation import evaluate_model
@@ -9,7 +10,6 @@ from prepare_data.feature_engineering import TextEncoder
 
 def main():
 
-    print("=== Sentiment Analysis Project ===")
     # Step 1: Load labeled data
     print("\n1. Loading labeled data from raw files...")
     preprocessor = Preprocessor()
@@ -72,18 +72,11 @@ def main():
 
     model = create_lstm_model(MAX_WORDS, MAX_LENGHT)
     print("\n7. Training the model...")
-    history = train_model(model, X_train, y_train, X_val, y_val, epochs = 2)
+    history = train_model(model, X_train, y_train, X_val, y_val, epochs = 5)
     plot_training_history(history)
 
     #evaluating the model
     evaluate_model(model, X_test, y_test, encoder)
-
-    #collection results
-    result_directory = pathlib.Path("record_results/LSTM")
-    result_directory.mkdir(parents=True, exist_ok=True)
-    model.save(result_directory / 'result_model_LSTM.h5')
-    shutil.move("history_records.png", result_directory)
-
 
 if __name__ == "__main__":
     main()
