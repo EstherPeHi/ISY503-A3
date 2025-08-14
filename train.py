@@ -1,10 +1,8 @@
-# train.py
 import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
-
 def train_model(model, X_train, y_train, X_val, y_val, epochs=50):
-    """Train model with best-practice callbacks."""
+    #Train model with best-practice callbacks
     early_stopping = EarlyStopping(
         monitor='val_loss',
         patience=5,
@@ -36,7 +34,7 @@ def train_model(model, X_train, y_train, X_val, y_val, epochs=50):
     return history
 
 def plot_training_history(history):
-    """Plot training & validation accuracy/loss and save to PNG."""
+    #Plot training & validation accuracy/loss and save to PNG."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 
     ax1.plot(history.history['accuracy'], label='Train')

@@ -4,14 +4,15 @@ import pickle
 from prepare_data.preprocessing import Preprocessor
 
 #init Flask
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 #load trained model
 model = tf.keras.models.load_model('best_model.h5')
 with open('tokenizer.pickle', 'rb') as f:
     tokenizer = pickle.load(f)
-#size of input
-MAX_LENGTH = 350
+
+#size of input for model
+MAX_LENGTH = 500
 preprocessor = Preprocessor()
 
 #running HTML from templates.index.html

@@ -1,10 +1,8 @@
 # main.py
 import pandas as pd
-import tensorflow as tf
-from models.LSTM.model_lstm import create_lstm_model
+from model_lstm import create_lstm_model
 from train import train_model, plot_training_history
 from evaluation import evaluate_model
-import pathlib, shutil
 from prepare_data.preprocessing import Preprocessor
 from prepare_data.feature_engineering import TextEncoder
 
