@@ -1,4 +1,4 @@
-# run_cnn_now.py  (runner independiente)
+# run_cnn_now.py  (runner independently)
 import argparse, re
 from pathlib import Path
 import numpy as np
@@ -113,8 +113,8 @@ def main():
     parser.add_argument("--batch-size", type=int, default=64)
     args = parser.parse_args()
 
-    # 1) Cargar dataset ya preparado en el repo
-    print("Cargando dataset desde", args.data_dir)
+    # 1)prepare dataset
+    print("Loading dataset", args.data_dir)
     texts, y = read_dir_reviews(args.data_dir)
     print(f"Total={len(texts)}  Pos={int(y.sum())}  Neg={int((1-y).sum())}")
 
@@ -144,7 +144,7 @@ def main():
                      epochs=args.epochs, batch_size=args.batch_size,
                      callbacks=callbacks, verbose=1)
 
-    # 6) === Elegir THRESHOLD en VALID por F1 ===
+    # 6) set THRESHOLD
     from sklearn.metrics import f1_score
     y_val_prob = model.predict(X_val, verbose=0).ravel()
 
@@ -168,34 +168,34 @@ def main():
     print(f"Accuracy: {acc:.4f}  Precision: {p:.4f}  Recall: {r:.4f}  F1: {f1:.4f}  AUC: {auc:.4f}")
     print("\nClassification report:\n", classification_report(y_test, y_pred, digits=4))
 
-    # Rehacer/guardar plots con estos resultados
+    #Redo/save plots with these results
     Path('record_results/CNN').mkdir(parents=True, exist_ok=True)
     cm = confusion_matrix(y_test, y_pred)
     plot_confusion(cm, "record_results/CNN/confusion_matrix.png")
     plot_roc_pr(y_test, y_prob, "record_results/CNN/curves")
 
-    # 7) Artefactos
+    # 7) Artefacts
     Path("record_results/CNN").mkdir(parents=True, exist_ok=True)
     plot_training(hist, "record_results/CNN/history_cnn")
     cm = confusion_matrix(y_test, y_pred)
     plot_confusion(cm, "record_results/CNN/confusion_matrix.png")
     plot_roc_pr(y_test, y_prob, "record_results/CNN/curves")
 
-    # 8) Guardar modelo + tokenizer + threshold
+    # 8) tokenizer + threshold
     import pickle, json, pathlib
     pathlib.Path("models/CNN").mkdir(parents=True, exist_ok=True)
 
     with open("models/CNN/tokenizer.pickle", "wb") as f:
         pickle.dump(tok, f)
 
-    # formato Keras (recomendado)
+    # saves the optimal threshold found in VALID
     model.save("models/CNN/last_cnn.keras")
 
     # guarda el umbral óptimo encontrado en VALID
     with open("models/CNN/threshold.json", "w") as f:
         json.dump({"threshold": float(best_th)}, f)
 
-    # 9) Demo de inferencia (usa el mismo threshold)
+    # 9) Inference demo (uses the same threshold)
     demo = [
         "I absolutely loved this! would buy again.",
         "This is the worst experience I've had. Terrible."
@@ -206,7 +206,7 @@ def main():
         lab = "Positive" if p_ >= best_th else "Negative"
         print(f"[DEMO] {lab} (prob={p_:.3f}, thr={best_th:.3f}) :: {t}")
 
-    print("\nListo. Revisa carpetas: record_results/CNN/ y models/CNN/")
+    print("\nResult: record_results/CNN/ y models/CNN/")
 
 
 if __name__ == "__main__":
