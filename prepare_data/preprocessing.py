@@ -6,6 +6,7 @@ import os
 import re
 import pandas as pd
 import unicodedata
+import contractions
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
@@ -66,6 +67,15 @@ class Preprocessor:
     def remove_names(self, text):
         return re.sub(r'\b([A-Z][a-z]+\s?){1,3}\b', '', text)
 
+    def remove_numbers(self, text):
+        return re.sub(r'\b\d+\b', '', text)
+
+    def expand_contractions(self, text):
+        return contractions.fix(text)
+
+    def reduce_lengthening(self, text):
+        return re.sub(r'(.)\1{2,}', r'\1\1', text)
+
     def clean_text(self, text):
         text = self.normalize_unicode(text)
         text = text.lower()
@@ -73,6 +83,9 @@ class Preprocessor:
         text = self.remove_urls(text)
         text = self.remove_emails(text)
         text = self.remove_names(text)
+        text = self.remove_numbers(text)
+        text = self.expand_contractions(text)
+        text = self.reduce_lengthening(text)
         text = re.sub(r'<.*?>', ' ', text)
         text = re.sub(r'[^a-z\s]', ' ', text)
         text = re.sub(r'\s+', ' ', text).strip()
@@ -105,7 +118,7 @@ class Preprocessor:
                 removed_count += 1
 
         print(f"Removed {removed_count} outlier reviews")
-        return filtered_reviews, filtered_labels, removed_count
+        return filtered_reviews, filtered_labels
 
     def check_data(self, reviews, labels):
         df = pd.DataFrame({'review': reviews, 'label': labels})

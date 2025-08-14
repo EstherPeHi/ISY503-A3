@@ -10,3 +10,4 @@ seaborn
 beautifulsoup4
 requests
 wordcloud
+contractions
