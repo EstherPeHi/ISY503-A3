@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
+
 def train_model(model, X_train, y_train, X_val, y_val, epochs=50):
     """Train model with best-practice callbacks."""
     early_stopping = EarlyStopping(
