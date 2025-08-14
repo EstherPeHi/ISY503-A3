@@ -13,5 +13,5 @@ def create_lstm_model(vocab_size, max_length):
         Dense(1, activation='sigmoid')
     ])
     # use optimizer for dataset
-    model.compile(optimizer=Adam(0.001), loss='binary_crossentropy', metrics=['accuracy', 'AUC'])
+    model.compile(optimizer=Adam(0.0005), loss='binary_crossentropy', metrics=['accuracy', 'AUC'])
     return model
