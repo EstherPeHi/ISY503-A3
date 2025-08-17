@@ -1,3 +1,5 @@
+#Huong Thu Le - Emma's work
+
 # Phase 7: Ethical Considerations & Bias
 import re
 import math
