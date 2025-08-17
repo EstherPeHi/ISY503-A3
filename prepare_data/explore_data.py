@@ -1,7 +1,10 @@
+#Huong Thu Le - Emma's work
+
 # explore_data.py
 import os
 import re
 
+#load data source in all categories
 DATA_DIR = '../sorted_data_acl'
 DOMAINS = ['books', 'dvd', 'electronics', 'kitchen_&_housewares']
 LABEL_FILES = {
