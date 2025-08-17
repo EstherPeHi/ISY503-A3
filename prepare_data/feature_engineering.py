@@ -1,3 +1,5 @@
+#Huong Thu Le - Emma's work
+
 import pickle
 import numpy as np
 from tensorflow.keras.preprocessing.text import Tokenizer
