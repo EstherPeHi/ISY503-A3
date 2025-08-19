@@ -10,3 +10,19 @@ training_history.png
 
 # Ignore output directory
 record_results/
+
+
+__pycache__/
+*.pyc
+record_results/
+
+models/CNN/*.keras
+models/CNN/*.h5
+models/CNN/tokenizer.pickle
+models/CNN/threshold.json
+models/CNN/saved_models/
+
+models/HYBRID/*.keras
+models/HYBRID/*.h5
+models/HYBRID/tokenizer.pickle
+models/HYBRID/threshold.json
