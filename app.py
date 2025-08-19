@@ -2,18 +2,22 @@ from flask import Flask, render_template, request, jsonify
 import tensorflow as tf
 import pickle
 from prepare_data.preprocessing import Preprocessor
+import json
 
 #init Flask
 app = Flask(__name__, static_folder='static')
 
 #load trained model
 model = tf.keras.models.load_model('best_model.h5')
-with open('tokenizer.pickle', 'rb') as f:
+with open('models/HYBRID/tokenizer.pickle', 'rb') as f:
     tokenizer = pickle.load(f)
 
 #size of input for model
-MAX_LENGTH = 500
+MAX_LENGTH = 300
 preprocessor = Preprocessor()
+
+with open("models/HYBRID/threshold.json") as f:
+    threshold = json.load(f)["threshold"]
 
 #running HTML from templates.index.html
 @app.route('/')
@@ -34,8 +38,8 @@ def predict():
 
         #prediction
         prediction = model.predict(prepared)[0][0]
-        sentiment = "Positive" if prediction > 0.5 else "Negative"
-        confidence = round(float(prediction if prediction > 0.5 else 1 - prediction), 4)
+        sentiment = "Positive" if prediction >= threshold else "Negative"
+        confidence = round(float(prediction if sentiment == "Positive" else 1 - prediction), 4)
 
         return jsonify({
             "sentiment": sentiment,
@@ -50,4 +54,4 @@ def predict():
         })
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

@@ -18,6 +18,7 @@ import json
 import pickle
 import re
 import sys as _sys
+from prepare_data.preprocessing import Preprocessor
 from pathlib import Path
 
 import numpy as np
@@ -226,6 +227,10 @@ def main():
     texts, y = read_dir_reviews(args.data_dir)
     print(f"Loaded samples: {len(texts)} | Pos={int(y.sum())} Neg={len(y)-int(y.sum())}")
 
+    #Clean texts before tokenization
+    pre = Preprocessor()
+    texts = [pre.clean_text(t) for t in texts]
+
     X_train, X_tmp, y_train, y_tmp = train_test_split(
         texts, y, test_size=0.30, random_state=42, stratify=y
     )
@@ -254,7 +259,7 @@ def main():
     cbs = [
         EarlyStopping(patience=args.early_stop_patience, restore_best_weights=True, monitor=args.monitor, mode=mode),
         ReduceLROnPlateau(patience=2, factor=0.5, monitor="val_loss"),
-        ModelCheckpoint("models/HYBRID/best_hybrid.keras", monitor=args.monitor, mode=mode, save_best_only=True),
+        ModelCheckpoint("models/HYBRID/best_model.keras", monitor=args.monitor, mode=mode, save_best_only=True)
     ]
     history = model.fit(
         X_train, y_train,
@@ -262,6 +267,8 @@ def main():
         epochs=args.epochs, batch_size=args.batch_size,
         callbacks=cbs, verbose=1
     )
+    # Export to HDF5 (.h5) for legacy tools like Flask
+    model.save("best_model.h5", include_optimizer=False)
 
     # Print chosen best epoch (correct min/max depending on monitor)
     hist = history.history
