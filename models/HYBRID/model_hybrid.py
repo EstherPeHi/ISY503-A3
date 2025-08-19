@@ -45,7 +45,7 @@ def create_hybrid_model(
     inp = Input(shape=(max_length,))
 
     # Embedding with masking so the LSTM doesn't learn from padding tokens.
-    x = Embedding(vocab_size, embedding_dim, input_length=max_length, mask_zero=True)(inp)
+    x = Embedding(vocab_size, embedding_dim, input_length=max_length)(inp)
     x = SpatialDropout1D(0.20)(x)
 
     # CNN branches (n-gram features)

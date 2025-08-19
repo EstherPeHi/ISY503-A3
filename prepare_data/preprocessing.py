@@ -100,7 +100,7 @@ class Preprocessor:
         print(f"Removed {before - after} duplicate reviews")
         return df
 
-    def remove_outliers(self, reviews, labels, min_length=20, max_length=500):
+    def remove_outliers(self, reviews, labels, min_length=20, max_length=300):
         """
         Remove all reviews that are too short or too long based on the number of characters.
         Return: (filtered_reviews, filtered_labels)

@@ -1,6 +1,6 @@
 # main.py
 import pandas as pd
-from model_lstm import create_lstm_model
+from models.LSTM.model_lstm import create_lstm_model
 from train import train_model, plot_training_history
 from evaluation import evaluate_model
 from prepare_data.preprocessing import Preprocessor
@@ -70,7 +70,7 @@ def main():
 
     model = create_lstm_model(MAX_WORDS, MAX_LENGHT)
     print("\n7. Training the model...")
-    history = train_model(model, X_train, y_train, X_val, y_val, epochs = 5)
+    history = train_model(model, X_train, y_train, X_val, y_val, epochs = 2)
     plot_training_history(history)
 
     #evaluating the model
