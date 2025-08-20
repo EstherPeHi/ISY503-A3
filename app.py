@@ -4,11 +4,15 @@ import pickle
 from prepare_data.preprocessing import Preprocessor
 import json
 
+
 #init Flask
 app = Flask(__name__, static_folder='static')
 
+# Fix for NotEqual op used in model (mask_zero=True or similar)
+custom_objects = {'NotEqual': tf.math.not_equal}
+
 #load trained model
-model = tf.keras.models.load_model('best_model.h5')
+model = tf.keras.models.load_model('best_model.h5', custom_objects=custom_objects)
 with open('models/HYBRID/tokenizer.pickle', 'rb') as f:
     tokenizer = pickle.load(f)
 
