@@ -47,7 +47,7 @@ USE_RUN_PRESET = True
 RUN_PRESET = dict(
     data_dir="sorted_data_acl",
     monitor="val_accuracy",   # or "val_loss"
-    epochs=30,
+    epochs=50,
     early_stop_patience=4,
     batch_size=64,
     max_length=300,
@@ -93,31 +93,29 @@ def create_cnn_model(
     vocab_size: int,
     max_length: int,
     embedding_dim: int = 128,
-    filters: int = 128,
+    filters: int = 256,
     kernel_sizes: tuple[int, ...] = (3, 4, 5),
-    dropout: float = 0.3,
+    dropout: float = 0.1,
     lr: float = 1e-3,
 ) -> Model:
     """
     TextCNN: convolutional blocks with different kernel sizes + max pooling.
     """
     inp = Input(shape=(max_length,))
-    x = Embedding(vocab_size, embedding_dim, input_length=max_length)(inp)
-    x = SpatialDropout1D(0.2)(x)
+    x = Embedding(vocab_size, embedding_dim, input_length=max_length, mask_zero=False)(inp)
 
     convs = []
     for k in kernel_sizes:
-        c = Conv1D(filters, k, padding='valid', activation=None, kernel_initializer='he_normal')(x)
+        c = Conv1D(filters*2, k, padding='valid', activation=None, kernel_initializer='he_normal')(x)
         c = BatchNormalization()(c)
         c = ReLU()(c)
         c = GlobalMaxPooling1D()(c)
         convs.append(c)
 
     x = Concatenate()(convs) if len(convs) > 1 else convs[0]
-    x = Dense(128, activation='relu')(x)
+    x = Dense(512, activation='relu')(x)
     x = Dropout(dropout)(x)
-    x = Dense(64, activation='relu')(x)
-    x = Dropout(dropout * 0.3)(x)
+    x = Dense(128, activation='relu')(x)
     out = Dense(1, activation='sigmoid')(x)
 
     model = Model(inputs=inp, outputs=out)
