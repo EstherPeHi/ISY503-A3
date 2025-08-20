@@ -1,4 +1,4 @@
-# python_script/preprocessing.py
+#Huong Thu Le (Emma) part
 import matplotlib.pyplot as plt
 import seaborn as sns
 

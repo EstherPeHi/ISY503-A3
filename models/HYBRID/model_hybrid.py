@@ -13,7 +13,7 @@ Notes for the team:
 
 from tensorflow.keras.layers import (
     Input, Embedding, SpatialDropout1D,
-    Conv1D, BatchNormalization, ReLU, GlobalMaxPooling1D,
+    Conv1D, BatchNormalization, ReLU, GlobalMaxPooling1D, GlobalAveragePooling1D,
     Bidirectional, LSTM, Concatenate, Dense, Dropout
 )
 from tensorflow.keras.models import Model
@@ -45,32 +45,47 @@ def create_hybrid_model(
     inp = Input(shape=(max_length,))
 
     # Embedding with masking so the LSTM doesn't learn from padding tokens.
-    x = Embedding(vocab_size, embedding_dim, input_length=max_length)(inp)
+    x = Embedding(vocab_size, embedding_dim, input_length=max_length, mask_zero=True)(inp)
     x = SpatialDropout1D(0.20)(x)
 
     # CNN branches (n-gram features)
     conv_vecs = []
     for k in conv_kernel_sizes:
-        c = Conv1D(
-            conv_filters, k,
-            padding="valid",
-            activation=None,
-            kernel_initializer="he_normal",
-            kernel_regularizer=l2(1e-4),
-        )(x)
-        c = BatchNormalization()(c)
-        c = ReLU()(c)
-        c = GlobalMaxPooling1D()(c)
-        conv_vecs.append(c)
+      c = Conv1D(
+          conv_filters, k,
+          padding="valid",
+          activation=None,
+          kernel_initializer="he_normal",
+          kernel_regularizer=l2(1e-4),
+      )(x)
+      c = BatchNormalization()(c)
+      c = ReLU()(c)
+
+      # Apply pooling while still 3D
+      max_pool = GlobalMaxPooling1D()(c)
+      avg_pool = GlobalAveragePooling1D()(c)
+
+      # Merge pooled features
+      merged_pool = Concatenate()([max_pool, avg_pool])
+      pooled = Dropout(0.2)(merged_pool)
+
+      conv_vecs.append(pooled)
+
 
     # BiLSTM branch (sequence features)
+    r = SpatialDropout1D(0.2)(x)
+
     r = Bidirectional(LSTM(
         lstm_units,
         return_sequences=True,
         dropout=0.20,
-        recurrent_dropout=0.20 if use_recurrent_dropout else 0.0,
-    ))(x)
-    r = GlobalMaxPooling1D()(r)
+        recurrent_dropout=0.20 if use_recurrent_dropout else 0.0
+    ))(r)
+    r_max = GlobalMaxPooling1D()(r)
+    r_avg = GlobalAveragePooling1D()(r)
+    r = Concatenate()([r_max, r_avg])
+    r = Dropout(0.2)(r)
+    conv_vecs.append(r)
 
     # Merge CNN + LSTM
     merged = Concatenate()(conv_vecs + [r])

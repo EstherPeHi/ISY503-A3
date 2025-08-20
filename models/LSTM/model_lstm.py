@@ -1,3 +1,4 @@
+#Vladimir Boiko part
 from keras.src.optimizers import Adam
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, SpatialDropout1D, LSTM, Dense, Dropout, Bidirectional

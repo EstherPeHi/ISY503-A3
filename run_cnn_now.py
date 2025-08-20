@@ -47,11 +47,11 @@ USE_RUN_PRESET = True
 RUN_PRESET = dict(
     data_dir="sorted_data_acl",
     monitor="val_accuracy",   # or "val_loss"
-    epochs=10,
+    epochs=30,
     early_stop_patience=4,
     batch_size=64,
     max_length=300,
-    max_words=50000,
+    max_words=10000,
     threshold_mode="fixed",
     threshold=0.5,
     show_plots=False,         # set True to display the summary figure
@@ -95,7 +95,7 @@ def create_cnn_model(
     embedding_dim: int = 128,
     filters: int = 128,
     kernel_sizes: tuple[int, ...] = (3, 4, 5),
-    dropout: float = 0.5,
+    dropout: float = 0.3,
     lr: float = 1e-3,
 ) -> Model:
     """
@@ -117,7 +117,7 @@ def create_cnn_model(
     x = Dense(128, activation='relu')(x)
     x = Dropout(dropout)(x)
     x = Dense(64, activation='relu')(x)
-    x = Dropout(dropout * 0.5)(x)
+    x = Dropout(dropout * 0.3)(x)
     out = Dense(1, activation='sigmoid')(x)
 
     model = Model(inputs=inp, outputs=out)
@@ -288,7 +288,7 @@ def main():
     Path("models/CNN").mkdir(parents=True, exist_ok=True)
     mode = "max" if args.monitor == "val_accuracy" else "min"
     cbs = [
-        EarlyStopping(patience=args.early_stop_patience, restore_best_weights=True, monitor=args.monitor),
+        #EarlyStopping(patience=args.early_stop_patience, restore_best_weights=True, monitor=args.monitor),
         ReduceLROnPlateau(patience=2, factor=0.5, monitor="val_loss"),
         ModelCheckpoint("models/CNN/best_cnn.keras", monitor=args.monitor, mode=mode, save_best_only=True),
     ]

@@ -7,10 +7,10 @@ from tensorflow.keras.optimizers import Adam
 
 def create_cnn_model(vocab_size: int,
                      max_length: int,
-                     embedding_dim: int = 128,
+                     embedding_dim: int = 64,
                      filters: int = 128,
                      kernel_sizes=(3, 4, 5),
-                     dropout: float = 0.5,
+                     dropout: float = 0.3,
                      lr: float = 1e-3):
     """TextCNN para clasificación binaria."""
     inp = Input(shape=(max_length,))
@@ -19,7 +19,6 @@ def create_cnn_model(vocab_size: int,
     convs = []
     for k in kernel_sizes:
         c = Conv1D(filters, k, activation='relu', padding='valid')(x)
-        c = BatchNormalization()(c)
         c = GlobalMaxPooling1D()(c)
         convs.append(c)
 
