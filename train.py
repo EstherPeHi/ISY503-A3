@@ -1,3 +1,5 @@
+#Vladimir Boiko part
+
 import matplotlib.pyplot as plt
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 

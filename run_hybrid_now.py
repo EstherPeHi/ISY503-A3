@@ -20,6 +20,9 @@ import re
 import sys as _sys
 from prepare_data.preprocessing import Preprocessor
 from pathlib import Path
+import sys
+import os
+sys.path.append("/content/ISY503-A3/ISY503-A3")
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,16 +46,15 @@ from models.HYBRID.model_hybrid import create_hybrid_model
 USE_RUN_PRESET = True
 RUN_PRESET = dict(
     data_dir="sorted_data_acl",
-    monitor="val_loss",          # or "val_accuracy"
-    epochs=9,
-    early_stop_patience=3,
-    batch_size=128,
+    monitor="val_loss",
+    epochs=50,
+    early_stop_patience=2,
+    batch_size=256,
     max_length=300,
     max_words=60000,
-    threshold_mode="fixed",      # "fixed" or "auto"
-    threshold=0.5,
-    show_plots=False,            # to view inline window
-    save_plots=True,             # to also save PNG summary panel
+    threshold_mode="auto",
+    show_plots=False,
+    save_plots=True,
     interactive=False
 )
 # -----------------------------------------------------------
@@ -253,11 +255,17 @@ def main():
     print(f"vocab_size={vocab_size}  max_length={args.max_length}")
 
     # 3) Build & train
-    model = create_hybrid_model(vocab_size=vocab_size, max_length=args.max_length)
+    model = create_hybrid_model(
+        vocab_size=vocab_size,
+        max_length=args.max_length,
+        lstm_units=64,
+        dropout=0.5,
+        use_recurrent_dropout=True
+    )
     Path("models/HYBRID").mkdir(parents=True, exist_ok=True)
     mode = "max" if args.monitor == "val_accuracy" else "min"
     cbs = [
-        EarlyStopping(patience=args.early_stop_patience, restore_best_weights=True, monitor=args.monitor, mode=mode),
+        #EarlyStopping(patience=args.early_stop_patience, restore_best_weights=True, monitor=args.monitor, mode=mode),
         ReduceLROnPlateau(patience=2, factor=0.5, monitor="val_loss"),
         ModelCheckpoint("models/HYBRID/best_model.keras", monitor=args.monitor, mode=mode, save_best_only=True)
     ]
