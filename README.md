@@ -17,6 +17,6 @@ http://127.0.0.1:5001
 - View the predicted sentiment (Positive or Negative) with Confidence(%).
 
 The project created by Torrens Students:
-Vladimir Boiko A00168917
-Esther Pena Hidalgo A00143308
-Huong Thu Le A00139606 
+- Vladimir Boiko A00168917
+- Esther Pena Hidalgo A00143308
+- Huong Thu Le A00139606 
