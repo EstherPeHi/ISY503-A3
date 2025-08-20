@@ -2,7 +2,7 @@
 
 1. Train the Model
  - Run the training script:
-"python run_hybrid_now.py"Эзнерщт кгт_рникшв_тщцюзнЭ
+"python run_hybrid_now.py"
 - This will load and preprocess the dataset, train the hybrid CNN+BiLSTM model and automatically save the best-performing as "best_model.h5"
 
 2: Launch the Web Application
